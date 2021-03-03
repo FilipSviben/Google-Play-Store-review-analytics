@@ -1,0 +1,10 @@
+name: offline_navigation_dashboard
+title:
+username:
+account: fsviben
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3707338
+bundleId: 4295448
+url: https://fsviben.shinyapps.io/offline_navigation_dashboard/
+when: 1614777779.79891
