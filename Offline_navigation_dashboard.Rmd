@@ -1,0 +1,1476 @@
+---
+title: "Reviews on Google Play Store - offline navigation apps"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny      
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(crosstalk)
+library(plotly)
+library(DT)
+library(shiny)
+library(bsts)
+library(sentimentr)
+```
+
+```{r}
+#Basic data
+dsc= read.csv("descriptives.csv")
+date_stars = read.csv("date_stars.csv")
+
+########################Review through time
+#Read data
+daily_review_freq = read.csv("daily_review_freq.csv")
+weekly_review_freq = read.csv("weekly_review_freq.csv")
+monthly_review_freq = read.csv("monthly_review_freq.csv")
+daily_review_freq$day_cut = as.Date(daily_review_freq$day_cut)
+weekly_review_freq$week_cut = as.Date(weekly_review_freq$week_cut)
+monthly_review_freq$month_cut = as.Date(monthly_review_freq$month_cut)
+
+#Define app factors
+daily_review_freq$app = factor(daily_review_freq$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+weekly_review_freq$app = factor(weekly_review_freq$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+monthly_review_freq$app = factor(monthly_review_freq$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+
+#Create shared data for ggplot2 to work in flexdashboard
+shared_drf <- SharedData$new(daily_review_freq)
+shared_wrf <- SharedData$new(weekly_review_freq)
+shared_mrf <- SharedData$new(monthly_review_freq)
+
+##############################Seasonalities in review frequency
+daily_seasonal_review_freq = read.csv("daily_seasonal_review_freq.csv")
+weekly_seasonal_review_freq = read.csv("weekly_seasonal_review_freq.csv")
+monthly_seasonal_review_freq = read.csv("monthly_seasonal_review_freq.csv")
+
+daily_seasonal_review_freq$app = factor(daily_seasonal_review_freq$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+weekly_seasonal_review_freq$app = factor(weekly_seasonal_review_freq$app, 
+                                levels = c(1,2,3,4,5,6,7,8),
+                                labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                           "Sygic", "Mapsme", "Waze", "Here"))
+monthly_seasonal_review_freq$app = factor(monthly_seasonal_review_freq$app, 
+                                 levels = c(1,2,3,4,5,6,7,8),
+                                 labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                            "Sygic", "Mapsme", "Waze", "Here"))
+
+shared_dsrf <- SharedData$new(daily_seasonal_review_freq)
+shared_wsrf <- SharedData$new(weekly_seasonal_review_freq)
+shared_msrf <- SharedData$new(monthly_seasonal_review_freq)
+
+########################Average rating through time
+#Read data
+daily_avg_rtg = read.csv("daily_avg_rtg.csv")
+weekly_avg_rtg = read.csv("weekly_avg_rtg.csv")
+monthly_avg_rtg = read.csv("monthly_avg_rtg.csv")
+daily_avg_rtg$day_cut = as.Date(daily_avg_rtg$day_cut)
+weekly_avg_rtg$week_cut = as.Date(weekly_avg_rtg$week_cut)
+monthly_avg_rtg$month_cut = as.Date(monthly_avg_rtg$month_cut)
+
+#Define app factors
+daily_avg_rtg$app = factor(daily_avg_rtg$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+weekly_avg_rtg$app = factor(weekly_avg_rtg$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+monthly_avg_rtg$app = factor(monthly_avg_rtg$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+
+#Create shared data for ggplot2 to work in flexdashboard
+shared_dar <- SharedData$new(daily_avg_rtg)
+shared_war <- SharedData$new(weekly_avg_rtg)
+shared_mar <- SharedData$new(monthly_avg_rtg)
+
+##############################Seasonalities in average rating
+daily_seasonal_avg_rtg = read.csv("daily_seasonal_avg_rtg.csv")
+weekly_seasonal_avg_rtg = read.csv("weekly_seasonal_avg_rtg.csv")
+monthly_seasonal_avg_rtg = read.csv("monthly_seasonal_avg_rtg.csv")
+
+daily_seasonal_avg_rtg$app = factor(daily_seasonal_avg_rtg$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+weekly_seasonal_avg_rtg$app = factor(weekly_seasonal_avg_rtg$app, 
+                                levels = c(1,2,3,4,5,6,7,8),
+                                labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                           "Sygic", "Mapsme", "Waze", "Here"))
+monthly_seasonal_avg_rtg$app = factor(monthly_seasonal_avg_rtg$app, 
+                                 levels = c(1,2,3,4,5,6,7,8),
+                                 labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                            "Sygic", "Mapsme", "Waze", "Here"))
+
+shared_dsar <- SharedData$new(daily_seasonal_avg_rtg)
+shared_wsar <- SharedData$new(weekly_seasonal_avg_rtg)
+shared_msar <- SharedData$new(monthly_seasonal_avg_rtg)
+
+####################BSTS review frequency prediction model
+weekly_new_data = read.csv("weekly_new_data.csv")
+weekly_old_data = read.csv("weekly_old_data.csv")
+weekly_new_data$week_cut = as.Date(weekly_new_data$week_cut)
+weekly_old_data$week_cut = as.Date(weekly_old_data$week_cut)
+
+weekly_new_data$app = factor(weekly_new_data$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+weekly_old_data$app = factor(weekly_old_data$app, 
+                                levels = c(1,2,3,4,5,6,7,8),
+                                labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                           "Sygic", "Mapsme", "Waze", "Here"))
+
+shared_wnd <- SharedData$new(weekly_new_data)
+shared_wod <- SharedData$new(weekly_old_data)
+
+########################Sentiment through time
+#Read data
+daily_sent = read.csv("daily_sent.csv")
+weekly_sent = read.csv("weekly_sent.csv")
+monthly_sent = read.csv("monthly_sent.csv")
+daily_sent$day_cut = as.Date(daily_sent$day_cut)
+weekly_sent$week_cut = as.Date(weekly_sent$week_cut)
+monthly_sent$month_cut = as.Date(monthly_sent$month_cut)
+
+#Define app factors
+daily_sent$app = factor(daily_sent$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+weekly_sent$app = factor(weekly_sent$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+monthly_sent$app = factor(monthly_sent$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+
+#Create shared data for ggplot2 to work in flexdashboard
+shared_dst <- SharedData$new(daily_sent)
+shared_wst <- SharedData$new(weekly_sent)
+shared_mst <- SharedData$new(monthly_sent)
+
+##############################Seasonalities in sentiment
+daily_seasonal_sentiment = read.csv("daily_seasonal_sentiment.csv")
+weekly_seasonal_sentiment = read.csv("weekly_seasonal_sentiment.csv")
+monthly_seasonal_sentiment = read.csv("monthly_seasonal_sentiment.csv")
+
+daily_seasonal_sentiment$app = factor(daily_seasonal_sentiment$app, 
+                               levels = c(1,2,3,4,5,6,7,8),
+                               labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                          "Sygic", "Mapsme", "Waze", "Here"))
+weekly_seasonal_sentiment$app = factor(weekly_seasonal_sentiment$app, 
+                                levels = c(1,2,3,4,5,6,7,8),
+                                labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                           "Sygic", "Mapsme", "Waze", "Here"))
+monthly_seasonal_sentiment$app = factor(monthly_seasonal_sentiment$app, 
+                                 levels = c(1,2,3,4,5,6,7,8),
+                                 labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                            "Sygic", "Mapsme", "Waze", "Here"))
+
+shared_dss <- SharedData$new(daily_seasonal_sentiment)
+shared_wss <- SharedData$new(weekly_seasonal_sentiment)
+shared_mss <- SharedData$new(monthly_seasonal_sentiment)
+
+#Word frequency
+word_freq <- read.csv("word_frequency_v2.csv")
+word_freq_table <- read.csv("word_frequency.csv")
+word_freq_table$app = factor(word_freq_table$app, 
+                                levels = c(1,2,3,4,5,6,7,8),
+                                labels = c("Genious", "TomTom", "CoPilot", "Navmii",
+                                           "Sygic", "Mapsme", "Waze", "Here"))
+```
+
+```{r}
+#Create plots
+########################Review through time
+my_colors1 <- c("#85BCE1", "#FBF87D", "#53C8AC", "#FCC66E",
+                "#FF6962", "#AAD684", "#9876B1", "#DA627D")
+
+my_colors2 <- c("#62A8D8", "#BEBA06", "#3DBD9F", "#FAA316",
+                "#FF4C43", "#8BC858", "#8962A6", "#ED6D92")
+
+drf_chart <- shared_drf %>%
+  ggplot(aes(day_cut, Count, group=app, color=app)) +
+  geom_line() +
+  scale_x_date(name = "Time (daily)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                          "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Number of reviews") +
+  xlab("Time (daily)") +
+  ylim(0,max(daily_review_freq$Count)+0.1*max(daily_review_freq$Count)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Reviews through time - daily")
+
+wrf_chart <- shared_wrf %>%
+  ggplot(aes(week_cut, Count, group=app, color=app)) +
+  geom_line() +
+  scale_x_date(name = "Time (weekly)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                         "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Number of reviews") +
+  xlab("Time (weekly)") +
+  ylim(0,max(weekly_review_freq$Count)+0.1*max(weekly_review_freq$Count)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Reviews through time - weekly")
+
+mrf_chart <- shared_mrf %>%
+  ggplot(aes(month_cut, Count, group=app, color=app)) +
+  geom_line() +
+  scale_x_date(name = "Time (monthly)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                          "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Number of reviews") +
+  xlab("Time (monthly)") +
+  ylim(0,max(monthly_review_freq$Count)+0.1*max(monthly_review_freq$Count)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Reviews through time - monthly")
+
+##############################Seasonalities in review frequency
+dsrf_chart <- shared_dsrf %>%
+  ggplot(aes(Day, pct, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Days", breaks = 1:7,
+                     labels = c("Monday", "Tuesday", "Wednesday", "Thursday",
+                                "Friday", "Saturday", "Sunday")) +
+  ylab("Share of reviews (in %)") +
+  scale_color_manual(values=my_colors2) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Share of reviews through days of the week")
+
+wsrf_chart <- shared_wsrf %>%
+  ggplot(aes(Week, pct, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Week number", n.breaks = 9) +
+  ylab("Share of reviews (in %)") +
+  scale_color_manual(values=my_colors2) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Share of reviews through weeks of the year")
+
+msrf_chart <- shared_msrf %>%
+  ggplot(aes(Month, pct, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Months", breaks = 1:12,
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  ylab("Share of reviews (in %)") +
+  scale_color_manual(values=my_colors2) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Share of reviews through months")
+
+########################Average rating through time
+dar_chart <- shared_dar %>%
+  ggplot(aes(day_cut, stars, group=app, colour = app)) +
+  stat_smooth(method = 'gam', formula = NULL, se = FALSE) +
+  scale_x_date(name = "Time (daily)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                         "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Average rating") +
+  xlab("Time (daily)") +
+  ylim(1,5) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average rating through time - daily smoothed")
+
+war_chart <- shared_war %>%
+  ggplot(aes(week_cut, stars, group=app, color=app)) +
+  geom_line() +
+  scale_x_date(name = "Time (weekly)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                          "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Average rating") +
+  xlab("Time (weekly)") +
+  ylim(1,5) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average rating through time - weekly")
+
+mar_chart <- shared_mar %>%
+  ggplot(aes(month_cut, stars, group=app, color=app)) +
+  geom_line() +
+  scale_x_date(name = "Time (monthly)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                           "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Average rating") +
+  xlab("Time (monthly)") +
+  ylim(1,5) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average rating through time - monthly")
+
+##############################Seasonalities in average rating
+dsar_chart <- shared_dsar %>%
+  ggplot(aes(day, stars, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Days of the week", breaks = 1:7,
+                     labels = c("Monday", "Tuesday", "Wednesday", "Thursday",
+                                "Friday", "Saturday", "Sunday")) +
+  ylab("Average rating") +
+  scale_color_manual(values=my_colors2) +
+  ylim(1,5) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average rating through days of the week")
+
+wsar_chart <- shared_wsar %>%
+  ggplot(aes(week, stars, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Week number", n.breaks = 9) +
+  ylab("Average rating") +
+  scale_color_manual(values=my_colors2) +
+  ylim(1,5) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average rating through weeks of the year")
+
+msar_chart <- shared_msar %>%
+  ggplot(aes(month, stars, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Months", breaks = 1:12,
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  ylab("Average rating") +
+  scale_color_manual(values=my_colors2) +
+  ylim(1,5) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average rating through months")
+
+####################BSTS review frequency prediction model
+bsts_chart = shared_wod %>%
+  ggplot(aes(week_cut, Count, group=app, color=app)) +
+  geom_line() +
+  stat_smooth(aes(x=week_cut, y=pred, group=app, ymax=high, ymin=low), 
+              data=shared_wnd) +
+  scale_x_date(name = "Time (weekly)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                          "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(name="Legend", values=my_colors2) +
+  ylab("Number of reviews") +
+  xlab("Time (weekly)") +
+  scale_y_continuous(breaks = seq(0, 600, by = 50)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5),
+        legend.direction = "vertical",
+        legend.position = c(0.9,0.75))+
+  ggtitle("Reviews through time - weekly + Predicted number of reviews")
+
+####################Sentiment through time
+dst_chart = shared_dst %>%
+  ggplot(aes(day_cut, sentiment, group=app, colour = app)) +
+  geom_line() +
+  scale_x_date(name = "Time (daily)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                         "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Sentiment") +
+  xlab("Time (daily)") +
+  ylim(-1,1) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Sentiment through time - daily")
+
+wst_chart = shared_wst %>%
+  ggplot(aes(week_cut, sentiment, group=app, color=app)) +
+  geom_line() +
+  scale_x_date(name = "Time (weekly)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                          "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Sentiment") +
+  xlab("Time (weekly)") +
+  ylim(-1,1) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Sentiment through time - weekly")
+
+mst_chart = shared_mst %>%
+  ggplot(aes(month_cut, sentiment, group=app, color=app)) +
+  geom_line() +
+  scale_x_date(name = "Time (monthly)", breaks = as.Date(c("2017-01-01",'2018-01-01',
+                                                           "2019-01-01", "2020-01-01")),
+               labels = c("2017","2018","2019","2020")) +
+  scale_color_manual(values=my_colors2) +
+  ylab("Sentiment") +
+  xlab("Time (monthly)") +
+  ylim(-1,1) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Sentiment through time - monthly")
+
+##############################Seasonalities in average rating
+dss_chart <- shared_dss %>%
+  ggplot(aes(day, sentiment, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Days of the week", breaks = 1:7,
+                     labels = c("Monday", "Tuesday", "Wednesday", "Thursday",
+                                "Friday", "Saturday", "Sunday")) +
+  ylab("Average sentiment") +
+  scale_color_manual(values=my_colors2) +
+  ylim(-1,1) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average sentiment through days of the week")
+
+wss_chart <- shared_wss %>%
+  ggplot(aes(week, sentiment, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Week number", n.breaks = 9) +
+  ylab("Average sentiment") +
+  scale_color_manual(values=my_colors2) +
+  ylim(-1,1) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average sentiment through weeks of the year")
+
+mss_chart <- shared_mss %>%
+  ggplot(aes(month, sentiment, group=app, colour = app)) +
+  geom_line() +
+  scale_x_continuous(name = "Months", breaks = 1:12,
+                     labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  ylab("Average sentiment") +
+  scale_color_manual(values=my_colors2) +
+  ylim(-1,1) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Average sentiment through months")
+```
+
+# Homepage
+
+## Column {data-width=500}
+
+### Introduction
+<font size = "6">This dashboard compares reviews on Google Play between 8 different Offline navigation apps. It is divided between 6 main pages and each page shows different kind of analysis. </font><br><br>
+<font size = "6">Idea behind this dashboard is easily compare Google Play review data between different apps. With few changes in the underlying code this dashboard can present review data on apps from other industries.</font><br><br>
+<font size = "6">Please note that all data in this dashboard is shown only for app reviews with comments (scraped reviews). In other words, reviews without comments (users who have rated the app on a scale from 1 to 5 without leaving a comment) aren't included in this report.</font><br><br>
+<font size = "6">Please read user manual before exploring this dashboard. You can find user manual by clicking
+<a href="https://documentcloud.adobe.com/link/review?uri=urn:aaid:scds:US:bd0dcada-2734-44f6-b9ae-b203feb24874" target=_blank>here</font></a>
+<br><br>
+<font size = "6">If you like this dashboard or see a way to improve it, please visit my GitHub page by clicking
+<a href="https://github.com/FilipSviben" target=_blank>
+here</font></a>
+
+## Column {data-width=250}
+
+### Info
+
+<center><font size = "6"><b>DATA GATHERING METHODOLOGY:</b> <br>Web scraping<br><br>
+<b>TIMELINE:</b> <br>15.06.2016 - 15.06.2020.<br><br>
+<b>SAMPLE:</b> <br>8 offline navigation apps<br></font></center>
+
+
+### List of apps with datasources
+<b><font size = "6"><a href="https://play.google.com/store/apps/details?id=hr.mireo.arthur&hl=en" target=_blank>Genius Maps</a><br>
+<a href="https://play.google.com/store/apps/details?id=com.tomtom.gplay.navapp&hl=en" target=_blank>TomTom</a><br>
+<a href="https://play.google.com/store/apps/details?id=com.alk.copilot.mapviewer&hl=en" target=_blank>CoPilot</a><br>
+<a href="https://play.google.com/store/apps/details?id=com.navfree.android.OSM.ALL&hl=en" target=_blank>Navmii</a><br>
+<a href="https://play.google.com/store/apps/details?id=com.sygic.aura&hl=en" target=_blank>Sygic</a><br>
+<a href="https://play.google.com/store/apps/details?id=com.mapswithme.maps.pro&hl=en" target=_blank>maps.me</a><br>
+<a href="https://play.google.com/store/apps/details?id=com.waze&hl=en" target=_blank>Waze</a><br>
+<a href="https://play.google.com/store/apps/details?id=com.here.app.maps&hl=en" target=_blank>Here</a></b></font>
+
+# Descriptive statistics
+
+## Column {data-width=1}
+
+### 
+```{r}
+valueBox("App", color = "#808080")
+```
+
+### 
+```{r}
+valueBox(dsc$app[1], color = my_colors2[1])
+```
+
+### 
+
+```{r}
+valueBox(dsc$app[2], color = my_colors2[2])
+```
+
+### 
+
+```{r}
+valueBox(dsc$app[3], color = my_colors2[3])
+```
+
+### 
+
+```{r}
+valueBox(dsc$app[4], color = my_colors2[4])
+```
+
+### 
+```{r}
+valueBox(dsc$app[5], color = my_colors2[5])
+```
+
+### 
+
+```{r}
+valueBox(dsc$app[6], color = my_colors2[6])
+```
+
+### 
+
+```{r}
+valueBox(dsc$app[7], color = my_colors2[7])
+```
+
+### 
+
+```{r}
+valueBox(dsc$app[8], color = my_colors2[8])
+```
+
+## Column {data-width=1}
+### 
+```{r}
+valueBox("Base", color = "#808080")
+```
+
+### 
+```{r}
+valueBox(dsc$base[1], color = my_colors2[1])
+```
+
+### 
+
+```{r}
+valueBox(dsc$base[2], color = my_colors2[2])
+```
+
+### 
+
+```{r}
+valueBox(dsc$base[3], color = my_colors2[3])
+```
+
+### 
+
+```{r}
+valueBox(dsc$base[4], color = my_colors2[4])
+```
+
+### 
+```{r}
+valueBox(dsc$base[5], color = my_colors2[5])
+```
+
+### 
+
+```{r}
+valueBox(dsc$base[6], color = my_colors2[6])
+```
+
+### 
+
+```{r}
+valueBox(dsc$base[7], color = my_colors2[7])
+```
+
+### 
+
+```{r}
+valueBox(dsc$base[8], color = my_colors2[8])
+```
+
+## Column {data-width=1}
+### 
+```{r}
+valueBox("Average daily reviews", color = "#808080")
+```
+
+### 
+```{r}
+valueBox(dsc$day[1], color = my_colors2[1])
+```
+
+### 
+
+```{r}
+valueBox(dsc$day[2], color = my_colors2[2])
+```
+
+### 
+
+```{r}
+valueBox(dsc$day[3], color = my_colors2[3])
+```
+
+### 
+
+```{r}
+valueBox(dsc$day[4], color = my_colors2[4])
+```
+
+### 
+```{r}
+valueBox(dsc$day[5], color = my_colors2[5])
+```
+
+### 
+
+```{r}
+valueBox(dsc$day[6], color = my_colors2[6])
+```
+
+### 
+
+```{r}
+valueBox(dsc$day[7], color = my_colors2[7])
+```
+
+### 
+
+```{r}
+valueBox(dsc$day[8], color = my_colors2[8])
+```
+
+## Column {data-width=1}
+### 
+```{r}
+valueBox("Average weekly reviews", color = "#808080")
+```
+
+### 
+```{r}
+valueBox(dsc$week[1], color = my_colors2[1])
+```
+
+### 
+
+```{r}
+valueBox(dsc$week[2], color = my_colors2[2])
+```
+
+### 
+
+```{r}
+valueBox(dsc$week[3], color = my_colors2[3])
+```
+
+### 
+
+```{r}
+valueBox(dsc$week[4], color = my_colors2[4])
+```
+
+### 
+```{r}
+valueBox(dsc$week[5], color = my_colors2[5])
+```
+
+### 
+
+```{r}
+valueBox(dsc$week[6], color = my_colors2[6])
+```
+
+### 
+
+```{r}
+valueBox(dsc$week[7], color = my_colors2[7])
+```
+
+### 
+
+```{r}
+valueBox(dsc$week[8], color = my_colors2[8])
+```
+
+## Column {data-width=1}
+### 
+```{r}
+valueBox("Average monthly reviews", color = "#808080")
+```
+
+### 
+```{r}
+valueBox(dsc$month[1], color = my_colors2[1])
+```
+
+### 
+
+```{r}
+valueBox(dsc$month[2], color = my_colors2[2])
+```
+
+### 
+
+```{r}
+valueBox(dsc$month[3], color = my_colors2[3])
+```
+
+### 
+
+```{r}
+valueBox(dsc$month[4], color = my_colors2[4])
+```
+
+### 
+```{r}
+valueBox(dsc$month[5], color = my_colors2[5])
+```
+
+### 
+
+```{r}
+valueBox(dsc$month[6], color = my_colors2[6])
+```
+
+### 
+
+```{r}
+valueBox(dsc$month[7], color = my_colors2[7])
+```
+
+### 
+
+```{r}
+valueBox(dsc$month[8], color = my_colors2[8])
+```
+
+## Column {data-width=1}
+### 
+```{r}
+valueBox("Average yearly reviews", color = "#808080")
+```
+
+### 
+```{r}
+valueBox(dsc$year[1], color = my_colors2[1])
+```
+
+### 
+
+```{r}
+valueBox(dsc$year[2], color = my_colors2[2])
+```
+
+### 
+
+```{r}
+valueBox(dsc$year[3], color = my_colors2[3])
+```
+
+### 
+
+```{r}
+valueBox(dsc$year[4], color = my_colors2[4])
+```
+
+### 
+```{r}
+valueBox(dsc$year[5], color = my_colors2[5])
+```
+
+### 
+
+```{r}
+valueBox(dsc$year[6], color = my_colors2[6])
+```
+
+### 
+
+```{r}
+valueBox(dsc$year[7], color = my_colors2[7])
+```
+
+### 
+
+```{r}
+valueBox(dsc$year[8], color = my_colors2[8])
+```
+
+# Review frequency
+
+## Column {data-width=1, .tabset}
+
+### Daily
+
+```{r}
+filter_slider("time", "Time", shared_drf, ~day_cut)
+filter_checkbox("app", "App", shared_drf, ~app, columns = 2)
+```
+
+### Weekly
+
+```{r}
+filter_slider("time", "Time", shared_wrf, ~week_cut)
+filter_checkbox("app", "App", shared_wrf, ~app, columns = 2)
+```
+
+### Monthly
+
+```{r}
+filter_slider("time", "Time", shared_mrf, ~month_cut)
+filter_checkbox("app", "App", shared_mrf, ~app, columns = 2)
+```
+
+
+### Seasonal - Day of the Week
+
+```{r}
+filter_slider("time", "Time", shared_dsrf, ~Day)
+filter_checkbox("app", "App", shared_dsrf, ~app, columns = 2)
+```
+
+### Seasonal - Week in the Year
+
+```{r}
+filter_slider("time", "Time", shared_wsrf, ~Week)
+filter_checkbox("app", "App", shared_wsrf, ~app, columns = 2)
+```
+
+### Seasoal - Month
+
+```{r}
+filter_slider("time", "Time", shared_msrf, ~Month)
+filter_checkbox("app", "App", shared_msrf, ~app, columns = 2)
+```
+
+## Column {data-width=8, .tabset} 
+
+### Daily
+
+```{r}
+ggplotly(drf_chart)
+```
+
+### Weekly
+
+```{r}
+ggplotly(wrf_chart)
+```
+
+### Monthly
+
+```{r}
+ggplotly(mrf_chart)
+```
+
+
+### Seasonal - Day of the Week
+
+```{r}
+ggplotly(dsrf_chart)
+```
+
+### Seasonal - Week in the Year
+
+```{r}
+ggplotly(wsrf_chart)
+```
+
+### Seasonal - Month
+
+```{r}
+ggplotly(msrf_chart)
+```
+
+### BSTS predicted number of reviews in the next year
+
+```{r}
+ggplotly(bsts_chart)
+```
+
+# Star rating
+
+## Column {data-width=1, .tabset}
+
+### Daily
+
+```{r}
+filter_checkbox("app", "App", shared_dar, ~app, columns = 2)
+```
+
+### Weekly
+
+```{r}
+filter_slider("time", "Time", shared_war, ~week_cut)
+filter_checkbox("app", "App", shared_war, ~app, columns = 2)
+```
+
+### Monthly
+
+```{r}
+filter_slider("time", "Time", shared_mar, ~month_cut)
+filter_checkbox("app", "App", shared_mar, ~app, columns = 2)
+```
+
+
+### Seasonal - Day of the Week
+
+```{r}
+filter_slider("time", "Time", shared_dsar, ~day)
+filter_checkbox("app", "App", shared_dsar, ~app, columns = 2)
+```
+
+### Seasonal - Week in the Year
+
+```{r}
+filter_slider("time", "Time", shared_wsar, ~week)
+filter_checkbox("app", "App", shared_wsar, ~app, columns = 2)
+```
+
+### Seasonal - Month
+
+```{r}
+filter_slider("time", "Time", shared_msar, ~month)
+filter_checkbox("app", "App", shared_msar, ~app, columns = 2)
+```
+
+## Column {data-width=8, .tabset} 
+
+### Daily
+
+```{r}
+ggplotly(dar_chart)
+```
+
+### Weekly
+
+```{r}
+ggplotly(war_chart)
+```
+
+### Monthly
+
+```{r}
+ggplotly(mar_chart)
+```
+
+### Seasonal - Day of the Week
+
+```{r}
+ggplotly(dsar_chart)
+```
+
+### Seasonal - Week in the Year
+
+```{r}
+ggplotly(wsar_chart)
+```
+
+### Seasonal - Month
+
+```{r}
+ggplotly(msar_chart)
+```
+
+# Sentiment
+
+## Column {data-width=1, .tabset}
+
+### Daily
+
+```{r}
+filter_slider("time", "Time", shared_dst, ~day_cut)
+filter_checkbox("app", "App", shared_dst, ~app, columns = 2)
+```
+
+### Weekly
+
+```{r}
+filter_slider("time", "Time", shared_wst, ~week_cut)
+filter_checkbox("app", "App", shared_wst, ~app, columns = 2)
+```
+
+### Monthly
+
+```{r}
+filter_slider("time", "Time", shared_mst, ~month_cut)
+filter_checkbox("app", "App", shared_mst, ~app, columns = 2)
+```
+
+### Seasonal - Day of the Week
+
+```{r}
+filter_slider("time", "Time", shared_dss, ~day)
+filter_checkbox("app", "App", shared_dss, ~app, columns = 2)
+```
+
+### Seasonal - Week in the Year
+
+```{r}
+filter_slider("time", "Time", shared_wss, ~week)
+filter_checkbox("app", "App", shared_wss, ~app, columns = 2)
+```
+
+### Seasoal - Month
+
+```{r}
+filter_slider("time", "Time", shared_mss, ~month)
+filter_checkbox("app", "App", shared_mss, ~app, columns = 2)
+```
+
+## Column {data-width=8, .tabset} 
+
+### Daily
+
+```{r}
+ggplotly(dst_chart)
+```
+
+### Weekly
+
+```{r}
+ggplotly(wst_chart)
+```
+
+### Monthly
+
+```{r}
+ggplotly(mst_chart)
+```
+
+### Seasonal - Day of the Week
+
+```{r}
+ggplotly(dss_chart)
+```
+
+### Seasonal - Week in the Year
+
+```{r}
+ggplotly(wss_chart)
+```
+
+### Seasonal - Month
+
+```{r}
+ggplotly(mss_chart)
+```
+
+# Word frequency
+
+## Column {data-width=1}
+
+### Word frequency per app
+
+```{r}
+selectInput(inputId="app1",label="App1",choices = c("Genius"="Genius",
+                                                    "TomTom"="TomTom",
+                                                    "CoPilot"="CoPilot",
+                                                    "Navmii"="Navmii",
+                                                    "Sygic"="Sygic",
+                                                    "Mapsme"="Mapsme",
+                                                    "Waze"="Waze",
+                                                    "Here"="Here"),
+            selected = "Genius",multiple = F)
+      
+selectInput(inputId="app2",label="App2",choices = c("Genius"="Genius",
+                                                    "TomTom"="TomTom",
+                                                    "CoPilot"="CoPilot",
+                                                    "Navmii"="Navmii",
+                                                    "Sygic"="Sygic",
+                                                    "Mapsme"="Mapsme",
+                                                    "Waze"="Waze",
+                                                    "Here"="Here"),
+            selected = "TomTom",multiple = F)
+```
+
+## Column {data-width=8}
+
+### App 1 
+
+```{r}
+renderPlot({
+    
+    p2 <- word_freq %>% ggplot()
+    if(input$app1 == "Genius"){
+      p2 <- p2 + geom_col(aes(x=reorder(words1, -pct1), y=pct1), fill = my_colors2[1]) +
+        geom_text(aes(x=reorder(words1, -pct1), y=pct1, label =pct1),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app1 == "TomTom"){
+      p2 <- p2 + geom_col(aes(x=reorder(words2, -pct2), y=pct2), fill = my_colors2[2]) +
+        geom_text(aes(x=reorder(words2, -pct2), y=pct2, label =pct2),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app1 == "CoPilot"){
+      p2 <- p2 + geom_col(aes(x=reorder(words3, -pct3), y=pct3), fill = my_colors2[3]) +
+        geom_text(aes(x=reorder(words3, -pct3), y=pct3, label =pct3),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app1 == "Navmii"){
+      p2 <- p2 + geom_col(aes(x=reorder(words4, -pct4), y=pct4), fill = my_colors2[4]) +
+        geom_text(aes(x=reorder(words4, -pct4), y=pct4, label =pct4),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app1 == "Sygic"){
+      p2 <- p2 + geom_col(aes(x=reorder(words5, -pct5), y=pct5), fill = my_colors2[5]) +
+        geom_text(aes(x=reorder(words5, -pct5), y=pct5, label =pct5),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app1 == "Mapsme"){
+      p2 <- p2 + geom_col(aes(x=reorder(words6, -pct6), y=pct6), fill = my_colors2[6]) +
+        geom_text(aes(x=reorder(words6, -pct6), y=pct6, labe6 =pct6),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app1 == "Waze"){
+      p2 <- p2 + geom_col(aes(x=reorder(words7, -pct7), y=pct7), fill = my_colors2[7]) +
+        geom_text(aes(x=reorder(words7, -pct7), y=pct7, label =pct7),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app1 == "Here"){
+      p2 <- p2 + geom_col(aes(x=reorder(words8, -pct8), y=pct8), fill = my_colors2[8]) +
+        geom_text(aes(x=reorder(words8, -pct1), y=pct8, label =pct8),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }
+    p2 <- p2 +  theme_bw()+
+      scale_y_continuous(limits = c(0,100), expand = c(0, 0)) +
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+            panel.background = element_blank(), axis.line = element_line(colour = "black"),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face = "bold")) + 
+      labs(x="Words",y="Share of words in reviews (%)",title=paste("Frequency of words -",input$app1,sep = " "))
+    
+    p2
+  })
+```
+
+### App 2  
+```{r}
+renderPlot({
+    
+    p2 <- word_freq %>% ggplot()
+    if(input$app2 == "Genius"){
+      p2 <- p2 + geom_col(aes(x=reorder(words1, -pct1), y=pct1), fill = my_colors2[1]) +
+        geom_text(aes(x=reorder(words1, -pct1), y=pct1, label =pct1),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app2 == "TomTom"){
+      p2 <- p2 + geom_col(aes(x=reorder(words2, -pct2), y=pct2), fill = my_colors2[2]) +
+        geom_text(aes(x=reorder(words2, -pct2), y=pct2, label =pct2),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app2 == "CoPilot"){
+      p2 <- p2 + geom_col(aes(x=reorder(words3, -pct3), y=pct3), fill = my_colors2[3]) +
+        geom_text(aes(x=reorder(words3, -pct3), y=pct3, label =pct3),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app2 == "Navmii"){
+      p2 <- p2 + geom_col(aes(x=reorder(words4, -pct4), y=pct4), fill = my_colors2[4]) +
+        geom_text(aes(x=reorder(words4, -pct4), y=pct4, label =pct4),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app2 == "Sygic"){
+      p2 <- p2 + geom_col(aes(x=reorder(words5, -pct5), y=pct5), fill = my_colors2[5]) +
+        geom_text(aes(x=reorder(words5, -pct5), y=pct5, label =pct5),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app2 == "Mapsme"){
+      p2 <- p2 + geom_col(aes(x=reorder(words6, -pct6), y=pct6), fill = my_colors2[6]) +
+        geom_text(aes(x=reorder(words6, -pct6), y=pct6, label =pct6),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app2 == "Waze"){
+      p2 <- p2 + geom_col(aes(x=reorder(words7, -pct7), y=pct7), fill = my_colors2[7]) +
+        geom_text(aes(x=reorder(words7, -pct7), y=pct7, label =pct7),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }else if(input$app2 == "Here"){
+      p2 <- p2 + geom_col(aes(x=reorder(words8, -pct8), y=pct8), fill = my_colors2[8]) +
+        geom_text(aes(x=reorder(words8, -pct8), y=pct8, label =pct8),
+                  position = position_dodge(0.9), size = 3.5, fontface = "bold", vjust = -1)
+    }
+    p2 <- p2 +  theme_bw()+
+      scale_y_continuous(limits = c(0,100), expand = c(0, 0)) +
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+            panel.background = element_blank(), axis.line = element_line(colour = "black"),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face = "bold")) + 
+      labs(x="Words",y="Share of words in reviews (%)",title=paste("Frequency of words -",input$app2,sep = " "))
+    
+    p2
+  })
+```
+
+# Tables
+
+## Column {data-width=8, .tabset} 
+
+### Daily reviews
+
+```{r}
+datatable(
+  daily_review_freq,
+  colnames = c("Date", "Number of Reviews", "Year", "Day", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Weekly reviews
+
+```{r}
+datatable(
+  weekly_review_freq,
+  colnames = c("Date", "Number of Reviews", "Year", "Week", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Monthly reviews
+
+```{r}
+datatable(
+  monthly_review_freq,
+  colnames = c("Date", "Number of Reviews", "Year", "Month", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Daily rating
+
+```{r}
+datatable(
+  daily_avg_rtg,
+  colnames = c("Date", "Average rating", "Year", "Day", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Weekly rating
+
+```{r}
+datatable(
+  weekly_avg_rtg,
+  colnames = c("Date", "Average rating", "Year", "Week", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Monthly rating
+
+```{r}
+datatable(
+  monthly_avg_rtg,
+  colnames = c("Date", "Average rating", "Year", "Month", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Daily sentiment
+
+```{r}
+datatable(
+  daily_sent,
+  colnames = c("Date", "Sentiment", "Year", "Day", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Weekly sentiment
+
+```{r}
+datatable(
+  weekly_sent,
+  colnames = c("Date", "Sentiment", "Year", "Week", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Monthly sentiment
+
+```{r}
+datatable(
+  monthly_sent,
+  colnames = c("Date", "Sentiment", "Year", "Month", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Word frequency
+
+```{r}
+datatable(
+  word_freq_table,
+  colnames = c("Words", "Frequency", "% of all reviews", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genious", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
+
+### Stars and reviews by date
+
+```{r}
+datatable(
+  date_stars,
+  colnames = c("Date", "Number of Reviews", "Average star rating", "App"),
+  filter = "top",
+  extensions = 'Buttons',
+  options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'print', 'csv')
+  )
+) %>%
+  formatStyle(
+  'app',
+  target = 'row',
+  backgroundColor = styleEqual(c("Genius Maps", "TomTom", "CoPilot", "Navmii",
+                                 "Sygic", "Maps.me", "Waze", "Here"), 
+                               my_colors1)
+)
+```
