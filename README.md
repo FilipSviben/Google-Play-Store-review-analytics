@@ -32,6 +32,7 @@ R script needed arround 8 hours of runtime to scroll through the reviews and cli
 ## 2. Data manipulation
 This step of the project has single goal of analyzing & cleaning data, creating models and exporting simple tables on which the final dashboard will be used. Allthough all of this can be done within the dashboard script, this step was introduced to simplyfy the dashboard script as much as possible.
 
-## 3. Dashboard - this was the main objective of the project. Dashboard is interactive and it covers several analytics like word frequency, sentiment analysis, rating analysis etc. Majority of the dashboard was created with `flexdashboard` package, while `shiny` was introduced only when interactivity was needed.
+## 3. Dashboard
+This was the main objective of the project. Dashboard is interactive and it covers several analytics like word frequency, sentiment analysis, rating analysis etc. Majority of the dashboard was created with `flexdashboard` package, while `shiny` was introduced only when interactivity was needed.
 
 
